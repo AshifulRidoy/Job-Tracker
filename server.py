@@ -90,7 +90,7 @@ class JobData(BaseModel):
     salary: Optional[str] = None
     job_type: Optional[str] = None
     experience_level: Optional[str] = None
-    skills: Optional[list[str]] = None
+    skills: Optional[List[str]] = None
     company_website: Optional[str] = None
     contact_person: Optional[str] = None
     contact_email: Optional[str] = None
@@ -98,11 +98,11 @@ class JobData(BaseModel):
     follow_up_date: Optional[datetime] = None
     rejection_reason: Optional[str] = None
     offer_amount: Optional[str] = None
-    benefits: Optional[list[str]] = None
+    benefits: Optional[List[str]] = None
     work_mode: Optional[str] = None
     application_method: Optional[str] = None
     source: Optional[str] = None
-    tags: Optional[list[str]] = None
+    tags: Optional[List[str]] = None
 
     class Config:
         json_encoders = {
