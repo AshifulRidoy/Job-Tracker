@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "Job Application Tracker",
+  "version": "1.0",
+  "description": "Track job applications and manage resumes in OneDrive",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting"
+  ],
+  "host_permissions": [
+    "*://*.linkedin.com/*",
+    "*://*.indeed.com/*",
+    "*://*.glassdoor.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.linkedin.com/*",
+        "*://*.indeed.com/*",
+        "*://*.glassdoor.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+} 

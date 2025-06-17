@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: job-tracker
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: MONGO_URI
+        sync: false
+      - key: NOTION_TOKEN
+        sync: false
+      - key: NOTION_DATABASE_ID
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+    healthCheckPath: /
+    autoDeploy: true 
