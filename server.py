@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from fastapi.requests import Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List, Dict
 from datetime import datetime, timedelta
 import os
@@ -29,22 +29,27 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:8000",
         "http://localhost:3000",
-        "chrome-extension://*",  # Allow Chrome extension
-        os.getenv("FRONTEND_URL", "https://your-frontend-url.com")  # Production frontend URL
+        "chrome-extension://*",  # Allow all Chrome extensions
+        "chrome-extension://iaipijeodpmliakdlfcajlndddedkfnf",  # Your specific extension ID
+        os.getenv("FRONTEND_URL", "https://job-tracker-kh1h.onrender.com")  # Your Render URL
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 # Templates
 templates = Jinja2Templates(directory="templates")
 
 # MongoDB configuration
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+MONGO_URI = os.getenv("MONGO_URI")
+if not MONGO_URI:
+    raise ValueError("MONGO_URI environment variable is not set")
+
 client = MongoClient(MONGO_URI)
-db = client["job_tracker"]
-jobs_collection = db["jobs"]
+db = client.job_tracker
+jobs_collection = db.jobs
 resumes_collection = db["resumes"]
 interviews_collection = db["interviews"]
 
@@ -75,22 +80,34 @@ class ApplicationStatus(str, Enum):
     ACCEPTED = "accepted"
 
 class JobData(BaseModel):
-    job_title: str
     company_name: str
-    location: str
-    job_description: str
+    job_title: str
     job_url: str
-    onedrive_folder_url: Optional[str] = None
-    status: ApplicationStatus = ApplicationStatus.SAVED
     application_date: Optional[datetime] = None
-    salary_range: Optional[str] = None
-    job_type: Optional[str] = None
+    status: str = "Applied"
     notes: Optional[str] = None
-    tags: List[str] = []
-    resume_version: Optional[str] = None
-    interview_dates: List[datetime] = []
-    created_at: datetime = datetime.now()
-    updated_at: datetime = datetime.now()
+    location: Optional[str] = None
+    salary: Optional[str] = None
+    job_type: Optional[str] = None
+    experience_level: Optional[str] = None
+    skills: Optional[list[str]] = None
+    company_website: Optional[str] = None
+    contact_person: Optional[str] = None
+    contact_email: Optional[str] = None
+    interview_date: Optional[datetime] = None
+    follow_up_date: Optional[datetime] = None
+    rejection_reason: Optional[str] = None
+    offer_amount: Optional[str] = None
+    benefits: Optional[list[str]] = None
+    work_mode: Optional[str] = None
+    application_method: Optional[str] = None
+    source: Optional[str] = None
+    tags: Optional[list[str]] = None
+
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
 
 class ResumeData(BaseModel):
     company_name: str
@@ -192,18 +209,30 @@ async def dashboard(request: Request):
 @app.post("/api/jobs")
 async def create_job(job_data: JobData):
     try:
-        # Ensure application_date is set
+        print("Received job data:", job_data.dict())
+        
+        # Set default values if not provided
         if not job_data.application_date:
             job_data.application_date = datetime.now()
-        result = jobs_collection.insert_one(job_data.model_dump())
+        
+        # Convert to dict for MongoDB
+        job_dict = job_data.dict()
+        print("Converting to dict:", job_dict)
+        
+        # Insert into MongoDB
+        print("Attempting to insert into MongoDB...")
+        result = jobs_collection.insert_one(job_dict)
+        print("MongoDB insert result:", result.inserted_id)
+        
         # Send to Notion
-        send_job_to_notion(job_data)
-        return {
-            "message": "Job data saved successfully",
-            "job_id": str(result.inserted_id)
-        }
+        try:
+            send_job_to_notion(job_data)
+        except Exception as e:
+            print(f"Notion integration error (non-critical): {str(e)}")
+        
+        return {"message": "Job application saved successfully", "id": str(result.inserted_id)}
     except Exception as e:
-        print(f"Error saving job: {str(e)}")  # Add logging
+        print(f"Error saving job application: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/jobs")
@@ -366,6 +395,27 @@ async def shutdown_event():
     """
     scheduler.shutdown()
     print("Scheduler shut down")
+
+@app.get("/api/test-db")
+async def test_db():
+    try:
+        # Test database connection
+        client.admin.command('ping')
+        
+        # Count documents in jobs collection
+        job_count = jobs_collection.count_documents({})
+        
+        # Get a sample document
+        sample_job = jobs_collection.find_one()
+        
+        return {
+            "status": "connected",
+            "job_count": job_count,
+            "sample_job": str(sample_job) if sample_job else None
+        }
+    except Exception as e:
+        print(f"Database test error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn

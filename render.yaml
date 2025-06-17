@@ -16,4 +16,5 @@ services:
       - key: FRONTEND_URL
         sync: false
     healthCheckPath: /
-    autoDeploy: true 
+    autoDeploy: true
+    pythonVersion: 3.11.0 
