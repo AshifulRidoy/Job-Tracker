@@ -148,44 +148,84 @@ def get_onedrive_token():
         print(f"Error in get_onedrive_token: {str(e)}")
         return None
 
-def create_onedrive_folder(company_name: str):
+def create_onedrive_folder(company_name: str, job_title: str):
     token = get_onedrive_token()
     if not token:
         print("Failed to get OneDrive token")
         return None
-        
+
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
     }
-    
-    # Create folder in OneDrive for a specific user
-    folder_data = {
+
+    user_email = "ashiful.ridoy@warpandas.onmicrosoft.com"
+    base_url = f"https://graph.microsoft.com/v1.0/users/{user_email}/drive/root"
+
+    # Step 1: Find or create 'File Management System' folder
+    fms_folder_url = f"{base_url}/children"
+    fms_folder_data = {
+        "name": "File Management System",
+        "folder": {},
+        "@microsoft.graph.conflictBehavior": "rename"
+    }
+    response = requests.post(fms_folder_url, headers=headers, json=fms_folder_data)
+    if response.status_code in [201, 409]:  # 201 = created, 409 = already exists
+        # Get the folder id (either from creation or by searching)
+        if response.status_code == 201:
+            fms_id = response.json()["id"]
+        else:
+            # Search for the folder if already exists
+            search_resp = requests.get(f"{base_url}/children?$filter=name eq 'File Management System'", headers=headers)
+            fms_id = search_resp.json()['value'][0]['id']
+    else:
+        print(f"Failed to create/find File Management System folder. Status: {response.status_code}, Response: {response.text}")
+        return None
+
+    # Step 2: Find or create Company folder
+    company_folder_url = f"{base_url}/items/{fms_id}/children"
+    company_folder_data = {
         "name": company_name,
         "folder": {},
         "@microsoft.graph.conflictBehavior": "rename"
     }
-    
-    try:
-        response = requests.post(
-            "https://graph.microsoft.com/v1.0/users/ashiful.ridoy@warpandas.onmicrosoft.com/drive/root/children",
-            headers=headers,
-            json=folder_data
-        )
-        
+    response = requests.post(company_folder_url, headers=headers, json=company_folder_data)
+    if response.status_code in [201, 409]:
         if response.status_code == 201:
-            return response.json()["webUrl"]
+            company_id = response.json()["id"]
         else:
-            print(f"Failed to create OneDrive folder. Status: {response.status_code}, Response: {response.text}")
+            search_resp = requests.get(f"{company_folder_url}?$filter=name eq '{company_name}'", headers=headers)
+            company_id = search_resp.json()['value'][0]['id']
+    else:
+        print(f"Failed to create/find company folder. Status: {response.status_code}, Response: {response.text}")
+        return None
+
+    # Step 3: Create Job Title folder
+    job_folder_url = f"{base_url}/items/{company_id}/children"
+    job_folder_data = {
+        "name": job_title,
+        "folder": {},
+        "@microsoft.graph.conflictBehavior": "rename"
+    }
+    response = requests.post(job_folder_url, headers=headers, json=job_folder_data)
+    if response.status_code == 201:
+        return response.json()["webUrl"]
+    elif response.status_code == 409:
+        # Folder already exists, get its id
+        search_resp = requests.get(f"{job_folder_url}?$filter=name eq '{job_title}'", headers=headers)
+        if search_resp.status_code == 200 and search_resp.json()['value']:
+            return search_resp.json()['value'][0]['webUrl']
+        else:
+            print(f"Failed to find existing job title folder. Status: {search_resp.status_code}, Response: {search_resp.text}")
             return None
-    except Exception as e:
-        print(f"Error creating OneDrive folder: {str(e)}")
+    else:
+        print(f"Failed to create job title folder. Status: {response.status_code}, Response: {response.text}")
         return None
 
 def send_job_to_notion(job_data: JobData):
     try:
         # Create OneDrive folder and get URL
-        onedrive_url = create_onedrive_folder(job_data.company_name)
+        onedrive_url = create_onedrive_folder(job_data.company_name, job_data.job_title)
         
         # Create a new page in the database
         new_page = {
@@ -217,7 +257,7 @@ def send_job_to_notion(job_data: JobData):
                 "URL": {
                     "url": onedrive_url if onedrive_url else job_data.job_url  # Fallback to job URL if OneDrive fails
                 },
-                "Application Status": {  # Ensure correct property name
+                "Application Status": {
                     "select": {
                         "name": job_data.status
                     }
