@@ -161,6 +161,9 @@ def create_onedrive_folder(company_name: str):
 
 def send_job_to_notion(job_data: JobData):
     try:
+        # Create OneDrive folder and get URL
+        onedrive_url = create_onedrive_folder(job_data.company_name)
+        
         # Create a new page in the database
         new_page = {
             "parent": {"database_id": NOTION_DATABASE_ID},
@@ -189,7 +192,12 @@ def send_job_to_notion(job_data: JobData):
                     }
                 },
                 "URL": {
-                    "url": job_data.job_url
+                    "url": onedrive_url  # Store OneDrive folder URL in the URL field
+                },
+                "Status": {
+                    "select": {
+                        "name": job_data.status
+                    }
                 }
             }
         }
