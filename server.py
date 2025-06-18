@@ -188,9 +188,9 @@ def create_onedrive_folder(company_name: str, job_title: str):
             print(f"Failed to create/find {fms_folder_name} folder. Status: {response.status_code}, Response: {response.text}")
             return None
 
-    # Step 2: Search for Company folder
+    # Step 2: Search for Company folder (fetch all children, search in Python)
     company_folder_url = f"{base_url}/items/{fms_id}/children"
-    search_resp = requests.get(f"{company_folder_url}?$filter=name eq '{company_name}'", headers=headers)
+    search_resp = requests.get(company_folder_url, headers=headers)
     print(f"[DEBUG] Company folder search response: {search_resp.status_code}, {search_resp.text}")
     company_id = None
     if search_resp.status_code == 200:
@@ -213,11 +213,12 @@ def create_onedrive_folder(company_name: str, job_title: str):
             print(f"Failed to create/find company folder. Status: {response.status_code}, Response: {response.text}")
             return None
 
-    # Step 3: Search for Job Title folder
+    # Step 3: Search for Job Title folder (fetch all children, search in Python)
     job_folder_url = f"{base_url}/items/{company_id}/children"
-    search_resp = requests.get(f"{job_folder_url}?$filter=name eq '{job_title}'", headers=headers)
+    search_resp = requests.get(job_folder_url, headers=headers)
     print(f"[DEBUG] Job folder search response: {search_resp.status_code}, {search_resp.text}")
     job_id = None
+    web_url = None
     if search_resp.status_code == 200:
         for item in search_resp.json().get('value', []):
             if item.get('name') == job_title:
