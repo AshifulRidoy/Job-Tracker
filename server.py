@@ -161,8 +161,7 @@ def create_onedrive_folder(company_name: str, job_title: str):
         "Content-Type": "application/json"
     }
 
-    user_email = "ashiful.ridoy@warpandas.onmicrosoft.com"
-    base_url = f"https://graph.microsoft.com/v1.0/users/{user_email}/drive/root"
+    base_url = f"https://graph.microsoft.com/v1.0/me/drive/root"
 
     # Step 1: Find or create 'File Management System Resume' folder
     fms_folder_name = "File Management System Resume"
