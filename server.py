@@ -259,9 +259,19 @@ def create_onedrive_folder(company_name: str, job_title: str):
 
 def send_job_to_notion(job_data: JobData):
     try:
+        # Map internal status to Notion select option names
+        NOTION_STATUS_OPTIONS = {
+            "saved": "Saved",
+            "applied": "Applied",
+            "interview": "Interview",
+            "offer": "Offer",
+            "rejected": "Rejected",
+            "accepted": "Accepted"
+        }
+        status_value = job_data.status.lower() if job_data.status else "applied"
+        notion_status = NOTION_STATUS_OPTIONS.get(status_value, "Applied")
         # Create OneDrive folder and get URL
         onedrive_url = create_onedrive_folder(job_data.company_name, job_data.job_title)
-        
         # Create a new page in the database
         new_page = {
             "parent": {"database_id": NOTION_DATABASE_ID},
@@ -294,12 +304,11 @@ def send_job_to_notion(job_data: JobData):
                 },
                 "Application Status": {
                     "select": {
-                        "name": job_data.status
+                        "name": notion_status
                     }
                 }
             }
         }
-        
         # Add the page to the database
         response = notion.pages.create(**new_page)
         print(f"Successfully added job to Notion: {job_data.job_title} at {job_data.company_name}")
