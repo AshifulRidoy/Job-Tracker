@@ -159,7 +159,7 @@ def create_onedrive_folder(company_name: str):
         "Content-Type": "application/json"
     }
     
-    # Create folder in OneDrive
+    # Create folder in OneDrive for a specific user
     folder_data = {
         "name": company_name,
         "folder": {},
@@ -168,7 +168,7 @@ def create_onedrive_folder(company_name: str):
     
     try:
         response = requests.post(
-            "https://graph.microsoft.com/v1.0/me/drive/root/children",
+            "https://graph.microsoft.com/v1.0/users/ashiful.ridoy@warpandas.onmicrosoft.com/drive/root/children",
             headers=headers,
             json=folder_data
         )
@@ -217,7 +217,7 @@ def send_job_to_notion(job_data: JobData):
                 "URL": {
                     "url": onedrive_url if onedrive_url else job_data.job_url  # Fallback to job URL if OneDrive fails
                 },
-                "Application Status": {
+                "Application Status": {  # Ensure correct property name
                     "select": {
                         "name": job_data.status
                     }
