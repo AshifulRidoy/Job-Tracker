@@ -134,10 +134,16 @@ document.addEventListener('DOMContentLoaded', async function() {
     document.getElementById('jobUrl').value = tabs[0].url;
   });
 
-  const API_BASE_URL = 'https://your-render-app-url.onrender.com';  // Update this with your Render URL
+  const API_BASE_URL = 'https://job-tracker-kh1h.onrender.com';  // Your Render URL
+
+  const loadingSpinner = document.getElementById('loadingSpinner');
+  const submitBtn = jobForm.querySelector('button[type="submit"]');
 
   jobForm.addEventListener('submit', async function(e) {
     e.preventDefault();
+    loadingSpinner.style.display = 'block';
+    submitBtn.disabled = true;
+    showStatus('Submitting...', '');
 
     const jobData = {
       job_title: document.getElementById('jobTitle').value,
@@ -177,6 +183,9 @@ document.addEventListener('DOMContentLoaded', async function() {
       }
     } catch (error) {
       showStatus('Error connecting to server: ' + error.message, 'error');
+    } finally {
+      loadingSpinner.style.display = 'none';
+      submitBtn.disabled = false;
     }
   });
 
