@@ -18,6 +18,7 @@ from enum import Enum
 from notion_client import Client as NotionClient
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
+import re
 
 # Load environment variables
 load_dotenv()
@@ -126,6 +127,10 @@ class InterviewData(BaseModel):
     preparation_notes: Optional[str] = None
     status: str = "scheduled"  # scheduled, completed, cancelled
 
+def sanitize_onedrive_name(name):
+    # OneDrive does not allow these characters: \\/:*?"<>|
+    return re.sub(r'[\\/:*?"<>|]', '-', name)
+
 def get_onedrive_token():
     try:
         if not all([ONEDRIVE_CLIENT_ID, ONEDRIVE_CLIENT_SECRET, ONEDRIVE_TENANT_ID]):
@@ -197,6 +202,7 @@ def create_onedrive_folder(company_name: str, job_title: str):
 
     # Step 2: Find or create Company folder
     print("UNIQUE-DEBUG-POINT: About to search for company folder - 20240618-XYZ")
+    safe_company_name = sanitize_onedrive_name(company_name)
     company_folder_url = f"https://graph.microsoft.com/v1.0/users/{user_email}/drive/items/{fms_id}/children"
     print(f"ACTUAL COMPANY FOLDER URL: {company_folder_url}")
     search_resp = requests.get(company_folder_url, headers=headers)
@@ -204,13 +210,13 @@ def create_onedrive_folder(company_name: str, job_title: str):
     company_id = None
     if search_resp.status_code == 200:
         for item in search_resp.json().get('value', []):
-            if item.get('name') == company_name:
+            if item.get('name') == safe_company_name:
                 company_id = item['id']
                 break
     if not company_id:
         # Folder not found, create it
         company_folder_data = {
-            "name": company_name,
+            "name": safe_company_name,
             "folder": {},
             "@microsoft.graph.conflictBehavior": "rename"
         }
@@ -223,6 +229,7 @@ def create_onedrive_folder(company_name: str, job_title: str):
             return None
 
     # Step 3: Find or create Job Title folder
+    safe_job_title = sanitize_onedrive_name(job_title)
     job_folder_url = f"https://graph.microsoft.com/v1.0/users/{user_email}/drive/items/{company_id}/children"
     search_resp = requests.get(job_folder_url, headers=headers)
     print(f"[DEBUG] Job folder search response: {search_resp.status_code}, {search_resp.text}")
@@ -230,14 +237,14 @@ def create_onedrive_folder(company_name: str, job_title: str):
     web_url = None
     if search_resp.status_code == 200:
         for item in search_resp.json().get('value', []):
-            if item.get('name') == job_title:
+            if item.get('name') == safe_job_title:
                 job_id = item['id']
                 web_url = item.get('webUrl')
                 break
     if not job_id:
         # Folder not found, create it
         job_folder_data = {
-            "name": job_title,
+            "name": safe_job_title,
             "folder": {},
             "@microsoft.graph.conflictBehavior": "rename"
         }
