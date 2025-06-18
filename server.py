@@ -192,8 +192,8 @@ def create_onedrive_folder(company_name: str, job_title: str):
 
     # Step 2: Find or create Company folder
     print("UNIQUE-DEBUG-POINT: About to search for company folder - 20240618-XYZ")
-    print(f"ACTUAL COMPANY FOLDER URL: {company_folder_url}")
     company_folder_url = f"{base_url}/items/{fms_id}/children"
+    print(f"ACTUAL COMPANY FOLDER URL: {company_folder_url}")
     search_resp = requests.get(company_folder_url, headers=headers)
     print(f"[DEBUG] Company folder search response: {search_resp.status_code}, {search_resp.text}")
     company_id = None
@@ -277,8 +277,8 @@ def send_job_to_notion(job_data: JobData):
                         "name": job_data.job_type
                     }
                 },
-                "URL": {
-                    "url": onedrive_url if onedrive_url else job_data.job_url  # Fallback to job URL if OneDrive fails
+                "Resume+Cover Letter": {
+                    "url": onedrive_url if onedrive_url else job_data.job_url
                 },
                 "Application Status": {
                     "select": {
