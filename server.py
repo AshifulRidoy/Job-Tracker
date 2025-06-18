@@ -149,6 +149,7 @@ def get_onedrive_token():
         return None
 
 def create_onedrive_folder(company_name: str, job_title: str):
+    print("create_onedrive_folder called")  # Debug: confirm function is running
     token = get_onedrive_token()
     if not token:
         print("Failed to get OneDrive token")
@@ -162,7 +163,7 @@ def create_onedrive_folder(company_name: str, job_title: str):
     user_email = "ashiful.ridoy@warpandas.onmicrosoft.com"
     base_url = f"https://graph.microsoft.com/v1.0/users/{user_email}/drive/root"
 
-    # Step 1: Search for 'File Management System Resume' folder (fetch all children, search in Python)
+    # Step 1: Find or create 'File Management System Resume' folder
     fms_folder_name = "File Management System Resume"
     root_children_url = f"{base_url}/children"
     search_resp = requests.get(root_children_url, headers=headers)
@@ -188,7 +189,7 @@ def create_onedrive_folder(company_name: str, job_title: str):
             print(f"Failed to create/find {fms_folder_name} folder. Status: {response.status_code}, Response: {response.text}")
             return None
 
-    # Step 2: Search for Company folder (fetch all children, search in Python)
+    # Step 2: Find or create Company folder
     company_folder_url = f"{base_url}/items/{fms_id}/children"
     search_resp = requests.get(company_folder_url, headers=headers)
     print(f"[DEBUG] Company folder search response: {search_resp.status_code}, {search_resp.text}")
@@ -213,7 +214,7 @@ def create_onedrive_folder(company_name: str, job_title: str):
             print(f"Failed to create/find company folder. Status: {response.status_code}, Response: {response.text}")
             return None
 
-    # Step 3: Search for Job Title folder (fetch all children, search in Python)
+    # Step 3: Find or create Job Title folder
     job_folder_url = f"{base_url}/items/{company_id}/children"
     search_resp = requests.get(job_folder_url, headers=headers)
     print(f"[DEBUG] Job folder search response: {search_resp.status_code}, {search_resp.text}")
@@ -237,7 +238,7 @@ def create_onedrive_folder(company_name: str, job_title: str):
         if response.status_code == 201:
             web_url = response.json().get("webUrl")
         else:
-            print(f"Failed to create job title folder. Status: {response.status_code}, Response: {response.text}")
+            print(f"Failed to create job title folder. Status: {response.status_code}, {response.text}")
             return None
     return web_url
 
