@@ -161,13 +161,19 @@ def create_onedrive_folder(company_name: str, job_title: str):
         "Content-Type": "application/json"
     }
 
-    base_url = f"https://graph.microsoft.com/v1.0/me/drive/root"
+    user_email = "ashiful.ridoy@warpandas.onmicrosoft.com"
+    base_url = f"https://graph.microsoft.com/v1.0/users/{user_email}/drive/root"
 
     # Step 1: Find or create 'File Management System Resume' folder
     fms_folder_name = "File Management System Resume"
     root_children_url = f"{base_url}/children"
     search_resp = requests.get(root_children_url, headers=headers)
     print(f"[DEBUG] Root folder search response: {search_resp.status_code}, {search_resp.text}")
+    # Print all root children and their IDs for debugging
+    if search_resp.status_code == 200:
+        print("[DEBUG] Root children:")
+        for item in search_resp.json().get('value', []):
+            print(f"  Name: {item.get('name')}, ID: {item.get('id')}")
     fms_id = None
     if search_resp.status_code == 200:
         for item in search_resp.json().get('value', []):
