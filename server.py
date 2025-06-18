@@ -192,6 +192,7 @@ def create_onedrive_folder(company_name: str, job_title: str):
 
     # Step 2: Find or create Company folder
     print("UNIQUE-DEBUG-POINT: About to search for company folder - 20240618-XYZ")
+    print(f"ACTUAL COMPANY FOLDER URL: {company_folder_url}")
     company_folder_url = f"{base_url}/items/{fms_id}/children"
     search_resp = requests.get(company_folder_url, headers=headers)
     print(f"[DEBUG] Company folder search response: {search_resp.status_code}, {search_resp.text}")
