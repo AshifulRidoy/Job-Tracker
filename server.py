@@ -299,7 +299,7 @@ def send_job_to_notion(job_data: JobData):
                         "name": job_data.job_type
                     }
                 },
-                "Job URL": {
+                "URL": {
                     "url": job_data.job_url
                 },
                 "Resume+Cover Letter": {
