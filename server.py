@@ -162,65 +162,83 @@ def create_onedrive_folder(company_name: str, job_title: str):
     user_email = "ashiful.ridoy@warpandas.onmicrosoft.com"
     base_url = f"https://graph.microsoft.com/v1.0/users/{user_email}/drive/root"
 
-    # Step 1: Find or create 'File Management System Resume' folder
-    fms_folder_url = f"{base_url}/children"
-    fms_folder_data = {
-        "name": "File Management System Resume",
-        "folder": {},
-        "@microsoft.graph.conflictBehavior": "rename"
-    }
-    response = requests.post(fms_folder_url, headers=headers, json=fms_folder_data)
-    if response.status_code in [201, 409]:  # 201 = created, 409 = already exists
-        # Get the folder id (either from creation or by searching)
+    # Step 1: Search for 'File Management System Resume' folder
+    fms_folder_name = "File Management System Resume"
+    search_resp = requests.get(f"{base_url}/children?$filter=name eq '{fms_folder_name}'", headers=headers)
+    print(f"[DEBUG] Root folder search response: {search_resp.status_code}, {search_resp.text}")
+    fms_id = None
+    if search_resp.status_code == 200:
+        for item in search_resp.json().get('value', []):
+            if item.get('name') == fms_folder_name:
+                fms_id = item['id']
+                break
+    if not fms_id:
+        # Folder not found, create it
+        fms_folder_url = f"{base_url}/children"
+        fms_folder_data = {
+            "name": fms_folder_name,
+            "folder": {},
+            "@microsoft.graph.conflictBehavior": "rename"
+        }
+        response = requests.post(fms_folder_url, headers=headers, json=fms_folder_data)
+        print(f"[DEBUG] Root folder create response: {response.status_code}, {response.text}")
         if response.status_code == 201:
             fms_id = response.json()["id"]
         else:
-            # Search for the folder if already exists
-            search_resp = requests.get(f"{base_url}/children?$filter=name eq 'File Management System Resume'", headers=headers)
-            fms_id = search_resp.json()['value'][0]['id']
-    else:
-        print(f"Failed to create/find File Management System Resume folder. Status: {response.status_code}, Response: {response.text}")
-        return None
+            print(f"Failed to create/find {fms_folder_name} folder. Status: {response.status_code}, Response: {response.text}")
+            return None
 
-    # Step 2: Find or create Company folder
+    # Step 2: Search for Company folder
     company_folder_url = f"{base_url}/items/{fms_id}/children"
-    company_folder_data = {
-        "name": company_name,
-        "folder": {},
-        "@microsoft.graph.conflictBehavior": "rename"
-    }
-    response = requests.post(company_folder_url, headers=headers, json=company_folder_data)
-    if response.status_code in [201, 409]:
+    search_resp = requests.get(f"{company_folder_url}?$filter=name eq '{company_name}'", headers=headers)
+    print(f"[DEBUG] Company folder search response: {search_resp.status_code}, {search_resp.text}")
+    company_id = None
+    if search_resp.status_code == 200:
+        for item in search_resp.json().get('value', []):
+            if item.get('name') == company_name:
+                company_id = item['id']
+                break
+    if not company_id:
+        # Folder not found, create it
+        company_folder_data = {
+            "name": company_name,
+            "folder": {},
+            "@microsoft.graph.conflictBehavior": "rename"
+        }
+        response = requests.post(company_folder_url, headers=headers, json=company_folder_data)
+        print(f"[DEBUG] Company folder create response: {response.status_code}, {response.text}")
         if response.status_code == 201:
             company_id = response.json()["id"]
         else:
-            search_resp = requests.get(f"{company_folder_url}?$filter=name eq '{company_name}'", headers=headers)
-            company_id = search_resp.json()['value'][0]['id']
-    else:
-        print(f"Failed to create/find company folder. Status: {response.status_code}, Response: {response.text}")
-        return None
-
-    # Step 3: Create Job Title folder
-    job_folder_url = f"{base_url}/items/{company_id}/children"
-    job_folder_data = {
-        "name": job_title,
-        "folder": {},
-        "@microsoft.graph.conflictBehavior": "rename"
-    }
-    response = requests.post(job_folder_url, headers=headers, json=job_folder_data)
-    if response.status_code == 201:
-        return response.json()["webUrl"]
-    elif response.status_code == 409:
-        # Folder already exists, get its id
-        search_resp = requests.get(f"{job_folder_url}?$filter=name eq '{job_title}'", headers=headers)
-        if search_resp.status_code == 200 and search_resp.json()['value']:
-            return search_resp.json()['value'][0]['webUrl']
-        else:
-            print(f"Failed to find existing job title folder. Status: {search_resp.status_code}, Response: {search_resp.text}")
+            print(f"Failed to create/find company folder. Status: {response.status_code}, Response: {response.text}")
             return None
-    else:
-        print(f"Failed to create job title folder. Status: {response.status_code}, Response: {response.text}")
-        return None
+
+    # Step 3: Search for Job Title folder
+    job_folder_url = f"{base_url}/items/{company_id}/children"
+    search_resp = requests.get(f"{job_folder_url}?$filter=name eq '{job_title}'", headers=headers)
+    print(f"[DEBUG] Job folder search response: {search_resp.status_code}, {search_resp.text}")
+    job_id = None
+    if search_resp.status_code == 200:
+        for item in search_resp.json().get('value', []):
+            if item.get('name') == job_title:
+                job_id = item['id']
+                web_url = item.get('webUrl')
+                break
+    if not job_id:
+        # Folder not found, create it
+        job_folder_data = {
+            "name": job_title,
+            "folder": {},
+            "@microsoft.graph.conflictBehavior": "rename"
+        }
+        response = requests.post(job_folder_url, headers=headers, json=job_folder_data)
+        print(f"[DEBUG] Job folder create response: {response.status_code}, {response.text}")
+        if response.status_code == 201:
+            web_url = response.json().get("webUrl")
+        else:
+            print(f"Failed to create job title folder. Status: {response.status_code}, Response: {response.text}")
+            return None
+    return web_url
 
 def send_job_to_notion(job_data: JobData):
     try:
