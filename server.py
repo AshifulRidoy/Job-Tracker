@@ -126,16 +126,34 @@ class InterviewData(BaseModel):
     status: str = "scheduled"  # scheduled, completed, cancelled
 
 def get_onedrive_token():
-    app = msal.ConfidentialClientApplication(
-        ONEDRIVE_CLIENT_ID,
-        authority=f"https://login.microsoftonline.com/{ONEDRIVE_TENANT_ID}",
-        client_credential=ONEDRIVE_CLIENT_SECRET
-    )
-    result = app.acquire_token_for_client(scopes=["https://graph.microsoft.com/.default"])
-    return result["access_token"]
+    try:
+        if not all([ONEDRIVE_CLIENT_ID, ONEDRIVE_CLIENT_SECRET, ONEDRIVE_TENANT_ID]):
+            print("Missing OneDrive credentials. Please check environment variables.")
+            return None
+
+        app = msal.ConfidentialClientApplication(
+            ONEDRIVE_CLIENT_ID,
+            authority=f"https://login.microsoftonline.com/{ONEDRIVE_TENANT_ID}",
+            client_credential=ONEDRIVE_CLIENT_SECRET
+        )
+        
+        result = app.acquire_token_for_client(scopes=["https://graph.microsoft.com/.default"])
+        
+        if "access_token" not in result:
+            print(f"Failed to get access token. Error: {result.get('error_description', 'Unknown error')}")
+            return None
+            
+        return result["access_token"]
+    except Exception as e:
+        print(f"Error in get_onedrive_token: {str(e)}")
+        return None
 
 def create_onedrive_folder(company_name: str):
     token = get_onedrive_token()
+    if not token:
+        print("Failed to get OneDrive token")
+        return None
+        
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
@@ -148,16 +166,21 @@ def create_onedrive_folder(company_name: str):
         "@microsoft.graph.conflictBehavior": "rename"
     }
     
-    response = requests.post(
-        "https://graph.microsoft.com/v1.0/me/drive/root/children",
-        headers=headers,
-        json=folder_data
-    )
-    
-    if response.status_code == 201:
-        return response.json()["webUrl"]
-    else:
-        raise HTTPException(status_code=500, detail="Failed to create OneDrive folder")
+    try:
+        response = requests.post(
+            "https://graph.microsoft.com/v1.0/me/drive/root/children",
+            headers=headers,
+            json=folder_data
+        )
+        
+        if response.status_code == 201:
+            return response.json()["webUrl"]
+        else:
+            print(f"Failed to create OneDrive folder. Status: {response.status_code}, Response: {response.text}")
+            return None
+    except Exception as e:
+        print(f"Error creating OneDrive folder: {str(e)}")
+        return None
 
 def send_job_to_notion(job_data: JobData):
     try:
@@ -192,7 +215,7 @@ def send_job_to_notion(job_data: JobData):
                     }
                 },
                 "URL": {
-                    "url": onedrive_url  # Store OneDrive folder URL in the URL field
+                    "url": onedrive_url if onedrive_url else job_data.job_url  # Fallback to job URL if OneDrive fails
                 },
                 "Status": {
                     "select": {
