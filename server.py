@@ -162,9 +162,10 @@ def create_onedrive_folder(company_name: str, job_title: str):
     user_email = "ashiful.ridoy@warpandas.onmicrosoft.com"
     base_url = f"https://graph.microsoft.com/v1.0/users/{user_email}/drive/root"
 
-    # Step 1: Search for 'File Management System Resume' folder
+    # Step 1: Search for 'File Management System Resume' folder (fetch all children, search in Python)
     fms_folder_name = "File Management System Resume"
-    search_resp = requests.get(f"{base_url}/children?$filter=name eq '{fms_folder_name}'", headers=headers)
+    root_children_url = f"{base_url}/children"
+    search_resp = requests.get(root_children_url, headers=headers)
     print(f"[DEBUG] Root folder search response: {search_resp.status_code}, {search_resp.text}")
     fms_id = None
     if search_resp.status_code == 200:
@@ -174,13 +175,12 @@ def create_onedrive_folder(company_name: str, job_title: str):
                 break
     if not fms_id:
         # Folder not found, create it
-        fms_folder_url = f"{base_url}/children"
         fms_folder_data = {
             "name": fms_folder_name,
             "folder": {},
             "@microsoft.graph.conflictBehavior": "rename"
         }
-        response = requests.post(fms_folder_url, headers=headers, json=fms_folder_data)
+        response = requests.post(root_children_url, headers=headers, json=fms_folder_data)
         print(f"[DEBUG] Root folder create response: {response.status_code}, {response.text}")
         if response.status_code == 201:
             fms_id = response.json()["id"]
