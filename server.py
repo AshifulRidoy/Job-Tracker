@@ -299,8 +299,11 @@ def send_job_to_notion(job_data: JobData):
                         "name": job_data.job_type
                     }
                 },
+                "Job URL": {
+                    "url": job_data.job_url
+                },
                 "Resume+Cover Letter": {
-                    "url": onedrive_url if onedrive_url else job_data.job_url
+                    "url": onedrive_url if onedrive_url else ""
                 },
                 "Application Status": {
                     "select": {
