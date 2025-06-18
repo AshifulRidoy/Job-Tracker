@@ -217,7 +217,7 @@ def send_job_to_notion(job_data: JobData):
                 "URL": {
                     "url": onedrive_url if onedrive_url else job_data.job_url  # Fallback to job URL if OneDrive fails
                 },
-                "Status": {
+                "Application Status": {
                     "select": {
                         "name": job_data.status
                     }
