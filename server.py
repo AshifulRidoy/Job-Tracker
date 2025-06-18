@@ -162,10 +162,10 @@ def create_onedrive_folder(company_name: str, job_title: str):
     user_email = "ashiful.ridoy@warpandas.onmicrosoft.com"
     base_url = f"https://graph.microsoft.com/v1.0/users/{user_email}/drive/root"
 
-    # Step 1: Find or create 'File Management System' folder
+    # Step 1: Find or create 'File Management System Resume' folder
     fms_folder_url = f"{base_url}/children"
     fms_folder_data = {
-        "name": "File Management System",
+        "name": "File Management System Resume",
         "folder": {},
         "@microsoft.graph.conflictBehavior": "rename"
     }
@@ -176,10 +176,10 @@ def create_onedrive_folder(company_name: str, job_title: str):
             fms_id = response.json()["id"]
         else:
             # Search for the folder if already exists
-            search_resp = requests.get(f"{base_url}/children?$filter=name eq 'File Management System'", headers=headers)
+            search_resp = requests.get(f"{base_url}/children?$filter=name eq 'File Management System Resume'", headers=headers)
             fms_id = search_resp.json()['value'][0]['id']
     else:
-        print(f"Failed to create/find File Management System folder. Status: {response.status_code}, Response: {response.text}")
+        print(f"Failed to create/find File Management System Resume folder. Status: {response.status_code}, Response: {response.text}")
         return None
 
     # Step 2: Find or create Company folder
