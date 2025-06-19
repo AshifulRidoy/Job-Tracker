@@ -106,6 +106,7 @@ class JobData(BaseModel):
     application_method: Optional[str] = None
     source: Optional[str] = None
     tags: Optional[List[str]] = None
+    job_description: Optional[str] = None
 
     class Config:
         json_encoders = {
@@ -310,6 +311,15 @@ def send_job_to_notion(job_data: JobData):
                     "select": {
                         "name": notion_status
                     }
+                },
+                "Job Description": {
+                    "rich_text": [
+                        {
+                            "text": {
+                                "content": job_data.job_description or ""
+                            }
+                        }
+                    ]
                 }
             }
         }

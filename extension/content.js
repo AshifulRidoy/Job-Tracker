@@ -10,7 +10,9 @@ function isJobPostingPage() {
     /indeed\.com\/viewjob/,
     /indeed\.com\/job/,
     /glassdoor\.com\/Job/,
-    /glassdoor\.com\/job/
+    /glassdoor\.com\/job/,
+    /xing\.com\/Job/,
+    /xing\.com\/job/
   ];
   
   return patterns.some(pattern => pattern.test(url));
@@ -112,6 +114,30 @@ async function scrapeJobData() {
         '.job-details-jobs-unified-top-card__job-description',
         '#JobDescriptionContainer'
       ]
+    },
+    xing: {
+      title: [
+        'h1[data-qa="job-title"]',
+        '.job-title',
+        'h1'
+      ],
+      company: [
+        'a[data-qa="company-name"]',
+        '.company',
+        '.company-name',
+        '.job-company'
+      ],
+      location: [
+        'span[data-qa="job-location"]',
+        '.job-location',
+        '.location'
+      ],
+      description: [
+        'section[data-qa="job-description"]',
+        '.job-description',
+        '.description',
+        'section'
+      ]
     }
   };
 
@@ -121,6 +147,8 @@ async function scrapeJobData() {
     portal = 'indeed';
   } else if (window.location.hostname.includes('glassdoor')) {
     portal = 'glassdoor';
+  } else if (window.location.hostname.includes('xing')) {
+    portal = 'xing';
   }
   console.log('Detected portal:', portal);
 
