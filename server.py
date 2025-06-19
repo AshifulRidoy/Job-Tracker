@@ -19,6 +19,7 @@ from notion_client import Client as NotionClient
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 import re
+import time
 
 # Load environment variables
 load_dotenv()
@@ -326,29 +327,22 @@ async def dashboard(request: Request):
 
 @app.post("/api/jobs")
 async def create_job(job_data: JobData):
+    start = time.time()
+    print(f"[PERF] Start job submission: {start}")
     try:
         print("Received job data:", job_data.dict())
-        
         # Set default values if not provided
         if not job_data.application_date:
             job_data.application_date = datetime.now()
-        
-        # Convert to dict for MongoDB
-        job_dict = job_data.dict()
-        print("Converting to dict:", job_dict)
-        
-        # Insert into MongoDB
-        print("Attempting to insert into MongoDB...")
-        result = jobs_collection.insert_one(job_dict)
-        print("MongoDB insert result:", result.inserted_id)
-        
-        # Send to Notion
+        # Send to Notion (and OneDrive)
+        notion_start = time.time()
         try:
             send_job_to_notion(job_data)
         except Exception as e:
             print(f"Notion integration error (non-critical): {str(e)}")
-        
-        return {"message": "Job application saved successfully", "id": str(result.inserted_id)}
+        notion_end = time.time()
+        print(f"[PERF] Notion+OneDrive time: {notion_end - notion_start:.2f}s (total: {notion_end - start:.2f}s)")
+        return {"message": "Job application saved to Notion successfully"}
     except Exception as e:
         print(f"Error saving job application: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
