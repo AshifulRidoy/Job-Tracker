@@ -337,6 +337,7 @@ function injectJobTrackerPanel() {
       align-items: center;
       justify-content: space-between;
     }
+    #jobForm { padding: 20px; }
     .form-group { margin-bottom: 15px; }
     label { display: block; margin-bottom: 5px; font-weight: bold; }
     input, textarea, select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
