@@ -225,20 +225,40 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 function injectJobTrackerPanel() {
   if (document.getElementById('jt-floating-panel')) return; // Prevent duplicates
 
-  // Inject BeerCSS stylesheet if not already present
-  if (!document.getElementById('beercss-cdn')) {
-    const beercss = document.createElement('link');
-    beercss.id = 'beercss-cdn';
-    beercss.rel = 'stylesheet';
-    beercss.href = 'https://cdn.jsdelivr.net/npm/beercss@3.4.11/dist/cdn/beer.min.css';
-    document.head.appendChild(beercss);
-  }
+  // Create host and shadow root
+  const host = document.createElement('div');
+  host.id = 'jt-floating-panel';
+  Object.assign(host.style, {
+    position: 'fixed',
+    top: '40px',
+    right: '40px',
+    width: '370px',
+    zIndex: 999999,
+    maxHeight: '90vh',
+    overflowY: 'auto',
+    padding: 0,
+    border: 'none',
+  });
+  const shadow = host.attachShadow({ mode: 'open' });
 
-  // Panel HTML using BeerCSS
-  const panel = document.createElement('div');
-  panel.id = 'jt-floating-panel';
-  panel.innerHTML = `
-    <div class="p-0" style="border-radius: 10px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.18);">
+  // BeerCSS and custom styles
+  const styleLinks = `
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/beercss@3.4.11/dist/cdn/beer.min.css">
+    <style>
+      .jt-panel-bg {
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+      }
+      .jt-panel-bg form { background: white; }
+      .jt-panel-bg nav { border-radius: 10px 10px 0 0; }
+    </style>
+  `;
+
+  // Panel HTML using BeerCSS, with a background
+  const panelHTML = `
+    <div class="jt-panel-bg p-0">
       <nav class="bar bg-primary white">
         <span class="pl-3">Job Application Tracker</span>
         <button id="jt-close-btn" class="transparent white" style="font-size: 1.5rem; margin-left:auto;" aria-label="Close">&times;</button>
@@ -310,30 +330,19 @@ function injectJobTrackerPanel() {
     </div>
   `;
 
-  // Panel CSS (only for positioning and z-index)
-  Object.assign(panel.style, {
-    position: 'fixed',
-    top: '40px',
-    right: '40px',
-    width: '370px',
-    background: 'transparent',
-    zIndex: 999999,
-    maxHeight: '90vh',
-    overflowY: 'auto',
-    padding: 0,
-    border: 'none',
-  });
+  shadow.innerHTML = styleLinks + panelHTML;
+  document.body.appendChild(host);
 
-  document.body.appendChild(panel);
-
-  // Close button logic
-  panel.querySelector('#jt-close-btn').onclick = () => {
-    panel.remove();
+  // All selectors and logic must use shadowRoot
+  const panel = shadow.querySelector('.jt-panel-bg');
+  const closeBtn = shadow.getElementById('jt-close-btn');
+  closeBtn.onclick = () => {
+    host.remove();
   };
 
   // Tag logic (BeerCSS chip-set)
-  const tagInput = panel.querySelector('#tagInput');
-  const tagField = panel.querySelector('#tagField');
+  const tagInput = shadow.getElementById('tagInput');
+  const tagField = shadow.getElementById('tagField');
   const tags = new Set();
   tagField.addEventListener('keydown', function(e) {
     if (e.key === 'Enter' && this.value.trim()) {
@@ -360,21 +369,21 @@ function injectJobTrackerPanel() {
   }
 
   // Autofill job URL
-  panel.querySelector('#jobUrl').value = window.location.href;
+  shadow.getElementById('jobUrl').value = window.location.href;
 
   // Autofill scraped data
   scrapeJobData().then(data => {
-    if (data.job_title) panel.querySelector('#jobTitle').value = data.job_title;
-    if (data.company_name) panel.querySelector('#companyName').value = data.company_name;
-    if (data.location) panel.querySelector('#location').value = data.location;
-    if (data.job_description) panel.querySelector('#jobDescription').value = data.job_description;
-    if (data.job_url) panel.querySelector('#jobUrl').value = data.job_url;
+    if (data.job_title) shadow.getElementById('jobTitle').value = data.job_title;
+    if (data.company_name) shadow.getElementById('companyName').value = data.company_name;
+    if (data.location) shadow.getElementById('location').value = data.location;
+    if (data.job_description) shadow.getElementById('jobDescription').value = data.job_description;
+    if (data.job_url) shadow.getElementById('jobUrl').value = data.job_url;
   });
 
   // Form submission logic
-  const jobForm = panel.querySelector('#jobForm');
-  const status = panel.querySelector('#status');
-  const loadingSpinner = panel.querySelector('#loadingSpinner');
+  const jobForm = shadow.getElementById('jobForm');
+  const status = shadow.getElementById('status');
+  const loadingSpinner = shadow.getElementById('loadingSpinner');
   const submitBtn = jobForm.querySelector('button[type="submit"]');
   const API_BASE_URL = 'https://job-tracker-kh1h.onrender.com';
 
@@ -384,15 +393,15 @@ function injectJobTrackerPanel() {
     submitBtn.disabled = true;
     showStatus('Submitting...', '');
     const jobData = {
-      job_title: panel.querySelector('#jobTitle').value,
-      company_name: panel.querySelector('#companyName').value,
-      location: panel.querySelector('#location').value,
-      job_description: panel.querySelector('#jobDescription').value,
-      job_url: panel.querySelector('#jobUrl').value,
-      job_type: panel.querySelector('#jobType').value,
-      salary_range: panel.querySelector('#salaryRange').value,
-      status: panel.querySelector('#status').value,
-      notes: panel.querySelector('#notes').value,
+      job_title: shadow.getElementById('jobTitle').value,
+      company_name: shadow.getElementById('companyName').value,
+      location: shadow.getElementById('location').value,
+      job_description: shadow.getElementById('jobDescription').value,
+      job_url: shadow.getElementById('jobUrl').value,
+      job_type: shadow.getElementById('jobType').value,
+      salary_range: shadow.getElementById('salaryRange').value,
+      status: shadow.getElementById('status').value,
+      notes: shadow.getElementById('notes').value,
       tags: Array.from(tags)
     };
     try {
@@ -406,7 +415,7 @@ function injectJobTrackerPanel() {
         showStatus('Job application saved successfully! OneDrive folder created.', 'success');
         jobForm.reset();
         tags.clear();
-        panel.querySelectorAll('.chip').forEach(tag => tag.remove());
+        shadow.querySelectorAll('.chip').forEach(tag => tag.remove());
         // Store the OneDrive folder URL
         if (chrome && chrome.storage && chrome.storage.local) {
           chrome.storage.local.set({[jobData.company_name]: result.onedrive_folder_url});
