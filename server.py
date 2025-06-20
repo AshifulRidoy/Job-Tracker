@@ -274,6 +274,11 @@ def send_job_to_notion(job_data: JobData):
         }
         status_value = job_data.status.lower() if job_data.status else "applied"
         notion_status = NOTION_STATUS_OPTIONS.get(status_value, "Applied")
+        # Truncate job description for Notion
+        MAX_NOTION_TEXT_LENGTH = 2000
+        job_description = job_data.job_description or ""
+        if len(job_description) > MAX_NOTION_TEXT_LENGTH:
+            job_description = job_description[:MAX_NOTION_TEXT_LENGTH - 3] + "..."
         # Create OneDrive folder and get URL
         onedrive_url = create_onedrive_folder(job_data.company_name, job_data.job_title)
         # Create a new page in the database
@@ -318,7 +323,7 @@ def send_job_to_notion(job_data: JobData):
                     "rich_text": [
                         {
                             "text": {
-                                "content": job_data.job_description or ""
+                                "content": job_description
                             }
                         }
                     ]
