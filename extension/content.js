@@ -225,48 +225,53 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 function injectJobTrackerPanel() {
   if (document.getElementById('jt-floating-panel')) return; // Prevent duplicates
 
-  // Panel HTML (based on popup.html, with a close button)
+  // Inject BeerCSS stylesheet if not already present
+  if (!document.getElementById('beercss-cdn')) {
+    const beercss = document.createElement('link');
+    beercss.id = 'beercss-cdn';
+    beercss.rel = 'stylesheet';
+    beercss.href = 'https://cdn.jsdelivr.net/npm/beercss@3.4.11/dist/cdn/beer.min.css';
+    document.head.appendChild(beercss);
+  }
+
+  // Panel HTML using BeerCSS
   const panel = document.createElement('div');
   panel.id = 'jt-floating-panel';
   panel.innerHTML = `
-    <div id="jt-panel-header">
-      <span style="font-weight:bold;">Job Application Tracker</span>
-      <button id="jt-close-btn" style="float:right;font-size:18px;background:none;border:none;cursor:pointer;">&times;</button>
-    </div>
-    <div class="tabs">
-      <div class="tab active" data-tab="job">Job Details</div>
-    </div>
-    <div id="jobTab" class="tab-content active">
-      <h2>Job Application Details</h2>
-      <form id="jobForm">
-        <div class="form-group">
-          <label for="jobTitle">Job Title:</label>
-          <input type="text" id="jobTitle">
+    <div class="p-0" style="border-radius: 10px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.18);">
+      <nav class="bar bg-primary white">
+        <span class="pl-3">Job Application Tracker</span>
+        <button id="jt-close-btn" class="transparent white" style="font-size: 1.5rem; margin-left:auto;" aria-label="Close">&times;</button>
+      </nav>
+      <form id="jobForm" class="p-4">
+        <h4 class="mb-3">Job Application Details</h4>
+        <div class="field mb-2">
+          <input class="input" type="text" id="jobTitle" required>
+          <label for="jobTitle">Job Title</label>
         </div>
-        <div class="form-group">
-          <label for="companyName">Company Name:</label>
-          <input type="text" id="companyName">
+        <div class="field mb-2">
+          <input class="input" type="text" id="companyName" required>
+          <label for="companyName">Company Name</label>
         </div>
-        <div class="form-group">
-          <label for="location">Location:</label>
-          <input type="text" id="location">
+        <div class="field mb-2">
+          <input class="input" type="text" id="location">
+          <label for="location">Location</label>
         </div>
-        <div class="form-group">
-          <label for="jobType">Job Type:</label>
-          <select id="jobType">
+        <div class="field mb-2">
+          <select class="input" id="jobType">
             <option value="full-time">Full Time</option>
             <option value="part-time">Part Time</option>
             <option value="contract">Contract</option>
             <option value="internship">Internship</option>
           </select>
+          <label for="jobType">Job Type</label>
         </div>
-        <div class="form-group">
-          <label for="salaryRange">Salary Range:</label>
-          <input type="text" id="salaryRange" placeholder="e.g., $80,000 - $100,000">
+        <div class="field mb-2">
+          <input class="input" type="text" id="salaryRange" placeholder="e.g., $80,000 - $100,000">
+          <label for="salaryRange">Salary Range</label>
         </div>
-        <div class="form-group">
-          <label for="status">Application Status:</label>
-          <select id="status">
+        <div class="field mb-2">
+          <select class="input" id="status">
             <option value="saved">Saved</option>
             <option value="applied">Applied</option>
             <option value="interview">Interview</option>
@@ -274,120 +279,59 @@ function injectJobTrackerPanel() {
             <option value="rejected">Rejected</option>
             <option value="accepted">Accepted</option>
           </select>
+          <label for="status">Application Status</label>
         </div>
-        <div class="form-group">
-          <label for="jobDescription">Job Description:</label>
-          <textarea id="jobDescription"></textarea>
+        <div class="field mb-2">
+          <textarea class="input" id="jobDescription"></textarea>
+          <label for="jobDescription">Job Description</label>
         </div>
-        <div class="form-group">
-          <label for="jobUrl">Job URL:</label>
-          <input type="url" id="jobUrl">
+        <div class="field mb-2">
+          <input class="input" type="url" id="jobUrl">
+          <label for="jobUrl">Job URL</label>
         </div>
-        <div class="form-group">
-          <label for="tags">Tags:</label>
-          <div class="tag-input" id="tagInput">
-            <input type="text" id="tagField" placeholder="Add tags...">
+        <div class="field mb-2">
+          <div class="chip-set" id="tagInput">
+            <input class="input" type="text" id="tagField" placeholder="Add tags...">
           </div>
+          <label for="tagField">Tags</label>
         </div>
-        <div class="form-group">
-          <label for="notes">Notes:</label>
-          <textarea id="notes" placeholder="Add any additional notes..."></textarea>
+        <div class="field mb-2">
+          <textarea class="input" id="notes" placeholder="Add any additional notes..."></textarea>
+          <label for="notes">Notes</label>
         </div>
-        <div class="button-group">
-          <button type="submit">Save Application</button>
+        <div class="mt-4 flex center">
+          <button type="submit" class="button bg-primary white">Save Application</button>
+        </div>
+        <div id="status" class="mt-3" style="display:none;"></div>
+        <div id="loadingSpinner" class="center mt-2" style="display:none;">
+          <progress class="circle"></progress>
         </div>
       </form>
     </div>
-    <div id="status" class="status"></div>
-    <div id="loadingSpinner" style="display:none; text-align:center; margin-top:10px;">
-      <svg width="32" height="32" viewBox="0 0 50 50">
-        <circle cx="25" cy="25" r="20" fill="none" stroke="#4CAF50" stroke-width="5" stroke-linecap="round" stroke-dasharray="31.4 31.4" transform="rotate(-90 25 25)">
-          <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="1s" repeatCount="indefinite"/>
-        </circle>
-      </svg>
-    </div>
   `;
 
-  // Panel CSS
+  // Panel CSS (only for positioning and z-index)
   Object.assign(panel.style, {
     position: 'fixed',
     top: '40px',
     right: '40px',
     width: '370px',
-    background: 'white',
-    border: '2px solid #4CAF50',
-    borderRadius: '10px',
-    boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+    background: 'transparent',
     zIndex: 999999,
-    padding: '0 0 20px 0',
-    fontFamily: 'Arial, sans-serif',
     maxHeight: '90vh',
     overflowY: 'auto',
+    padding: 0,
+    border: 'none',
   });
-
-  // Panel header CSS
-  const style = document.createElement('style');
-  style.textContent = `
-    #jt-panel-header {
-      padding: 12px 20px 8px 20px;
-      border-bottom: 1px solid #eee;
-      background: #f7f7f7;
-      border-radius: 10px 10px 0 0;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    #jobForm { padding: 20px; }
-    .form-group { margin-bottom: 15px; }
-    label { display: block; margin-bottom: 5px; font-weight: bold; }
-    input, textarea, select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-    textarea { height: 100px; resize: vertical; }
-    .button-group { display: flex; gap: 10px; margin-top: 20px; }
-    button { background-color: #4CAF50; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; flex: 1; }
-    button:hover { background-color: #45a049; }
-    button.secondary { background-color: #2196F3; }
-    button.secondary:hover { background-color: #1976D2; }
-    .status { margin-top: 10px; padding: 10px; border-radius: 4px; display: none; }
-    .success { background-color: #dff0d8; color: #3c763d; }
-    .error { background-color: #f2dede; color: #a94442; }
-    .tabs { display: flex; margin-bottom: 20px; border-bottom: 1px solid #ddd; }
-    .tab { padding: 10px 20px; cursor: pointer; border-bottom: 2px solid transparent; }
-    .tab.active { border-bottom-color: #4CAF50; font-weight: bold; }
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-    .tag-input { display: flex; flex-wrap: wrap; gap: 5px; padding: 5px; border: 1px solid #ddd; border-radius: 4px; }
-    .tag { background-color: #e0e0e0; padding: 2px 8px; border-radius: 12px; display: flex; align-items: center; gap: 5px; }
-    .tag button { background: none; border: none; color: #666; padding: 0; font-size: 16px; cursor: pointer; }
-    .tag-input input { border: none; outline: none; flex: 1; min-width: 100px; }
-  `;
-  document.head.appendChild(style);
 
   document.body.appendChild(panel);
 
   // Close button logic
   panel.querySelector('#jt-close-btn').onclick = () => {
     panel.remove();
-    style.remove();
   };
 
-  // Tab logic
-  const tabs = panel.querySelectorAll('.tab');
-  const tabContents = panel.querySelectorAll('.tab-content');
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      const tabName = tab.dataset.tab;
-      tabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      tabContents.forEach(content => {
-        content.classList.remove('active');
-        if (content.id === `${tabName}Tab`) {
-          content.classList.add('active');
-        }
-      });
-    });
-  });
-
-  // Tag logic
+  // Tag logic (BeerCSS chip-set)
   const tagInput = panel.querySelector('#tagInput');
   const tagField = panel.querySelector('#tagField');
   const tags = new Set();
@@ -401,17 +345,17 @@ function injectJobTrackerPanel() {
   function addTag(tag) {
     if (!tags.has(tag)) {
       tags.add(tag);
-      const tagElement = document.createElement('div');
-      tagElement.className = 'tag';
-      tagElement.innerHTML = `
-        ${tag}
-        <button type="button">&times;</button>
+      const chip = document.createElement('div');
+      chip.className = 'chip';
+      chip.innerHTML = `
+        <span>${tag}</span>
+        <button type="button" class="transparent" aria-label="Remove tag">&times;</button>
       `;
-      tagElement.querySelector('button').onclick = function() {
-        tagElement.remove();
+      chip.querySelector('button').onclick = function() {
+        chip.remove();
         tags.delete(tag);
       };
-      tagInput.insertBefore(tagElement, tagField);
+      tagInput.insertBefore(chip, tagField);
     }
   }
 
@@ -462,7 +406,7 @@ function injectJobTrackerPanel() {
         showStatus('Job application saved successfully! OneDrive folder created.', 'success');
         jobForm.reset();
         tags.clear();
-        panel.querySelectorAll('.tag').forEach(tag => tag.remove());
+        panel.querySelectorAll('.chip').forEach(tag => tag.remove());
         // Store the OneDrive folder URL
         if (chrome && chrome.storage && chrome.storage.local) {
           chrome.storage.local.set({[jobData.company_name]: result.onedrive_folder_url});
@@ -480,15 +424,16 @@ function injectJobTrackerPanel() {
 
   function showStatus(message, type) {
     status.textContent = message;
-    status.className = 'status';
+    status.className = 'mt-3';
     if (type === 'success') {
-      status.classList.add('success');
+      status.classList.add('green-text');
     } else if (type === 'error') {
-      status.classList.add('error');
+      status.classList.add('red-text');
     }
     status.style.display = 'block';
     setTimeout(() => {
       status.style.display = 'none';
+      status.classList.remove('green-text', 'red-text');
     }, 4000);
   }
 }
