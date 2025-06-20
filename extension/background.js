@@ -45,4 +45,11 @@ function storeJobData(jobData) {
       });
     });
   });
-} 
+}
+
+// Listen for extension icon click to show the floating panel
+chrome.action.onClicked.addListener((tab) => {
+  if (tab.id) {
+    chrome.tabs.sendMessage(tab.id, { action: 'showPanel' });
+  }
+}); 
