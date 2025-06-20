@@ -241,90 +241,115 @@ function injectJobTrackerPanel() {
   });
   const shadow = host.attachShadow({ mode: 'open' });
 
-  // BeerCSS and custom styles
+  // PureCSS and custom styles
   const styleLinks = `
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/beercss@3.4.11/dist/cdn/beer.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/pure-min.css" integrity="sha384-X38yfunGUhNzHpBaEBsWLO+A0HDYOQi8ufWDkZ0k9e0eXz/tH3II7uKZ9msv++Ls" crossorigin="anonymous">
     <style>
       .jt-panel-bg {
-        background: white;
+        background: #fff;
         border-radius: 10px;
         overflow: hidden;
-        box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+        font-family: Arial, sans-serif;
       }
-      .jt-panel-bg form { background: white; }
-      .jt-panel-bg nav { border-radius: 10px 10px 0 0; }
+      .jt-panel-header {
+        background: #1f8dd6;
+        color: #fff;
+        padding: 12px 20px 8px 20px;
+        border-radius: 10px 10px 0 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .jt-close-btn {
+        background: none;
+        border: none;
+        color: #fff;
+        font-size: 1.5rem;
+        cursor: pointer;
+        margin-left: auto;
+      }
+      .pure-form .pure-input, .pure-form input, .pure-form select, .pure-form textarea {
+        width: 100%;
+        margin-bottom: 10px;
+      }
+      .chip-set {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-bottom: 10px;
+      }
+      .chip {
+        background: #e0e0e0;
+        padding: 2px 8px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .chip button {
+        background: none;
+        border: none;
+        color: #666;
+        padding: 0;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      .status-success { color: #388e3c; margin-top: 10px; }
+      .status-error { color: #d32f2f; margin-top: 10px; }
+      .center { text-align: center; }
     </style>
   `;
 
-  // Panel HTML using BeerCSS, with a background
+  // Panel HTML using PureCSS
   const panelHTML = `
-    <div class="jt-panel-bg p-0">
-      <nav class="bar bg-primary white">
-        <span class="pl-3">Job Application Tracker</span>
-        <button id="jt-close-btn" class="transparent white" style="font-size: 1.5rem; margin-left:auto;" aria-label="Close">&times;</button>
-      </nav>
-      <form id="jobForm" class="p-4">
-        <h4 class="mb-3">Job Application Details</h4>
-        <div class="field mb-2">
-          <input class="input" type="text" id="jobTitle" required>
-          <label for="jobTitle">Job Title</label>
+    <div class="jt-panel-bg">
+      <div class="jt-panel-header">
+        <span style="font-weight:bold;">Job Application Tracker</span>
+        <button id="jt-close-btn" class="jt-close-btn" aria-label="Close">&times;</button>
+      </div>
+      <form id="jobForm" class="pure-form pure-form-stacked" style="padding: 20px;">
+        <h4 style="margin-bottom: 18px;">Job Application Details</h4>
+        <label for="jobTitle">Job Title</label>
+        <input class="pure-input" type="text" id="jobTitle" required>
+        <label for="companyName">Company Name</label>
+        <input class="pure-input" type="text" id="companyName" required>
+        <label for="location">Location</label>
+        <input class="pure-input" type="text" id="location">
+        <label for="jobType">Job Type</label>
+        <select class="pure-input" id="jobType">
+          <option value="full-time">Full Time</option>
+          <option value="part-time">Part Time</option>
+          <option value="contract">Contract</option>
+          <option value="internship">Internship</option>
+        </select>
+        <label for="salaryRange">Salary Range</label>
+        <input class="pure-input" type="text" id="salaryRange" placeholder="e.g., $80,000 - $100,000">
+        <label for="status">Application Status</label>
+        <select class="pure-input" id="status">
+          <option value="saved">Saved</option>
+          <option value="applied">Applied</option>
+          <option value="interview">Interview</option>
+          <option value="offer">Offer</option>
+          <option value="rejected">Rejected</option>
+          <option value="accepted">Accepted</option>
+        </select>
+        <label for="jobDescription">Job Description</label>
+        <textarea class="pure-input" id="jobDescription"></textarea>
+        <label for="jobUrl">Job URL</label>
+        <input class="pure-input" type="url" id="jobUrl">
+        <label for="tagField">Tags</label>
+        <div class="chip-set" id="tagInput">
+          <input class="pure-input" type="text" id="tagField" placeholder="Add tags...">
         </div>
-        <div class="field mb-2">
-          <input class="input" type="text" id="companyName" required>
-          <label for="companyName">Company Name</label>
+        <label for="notes">Notes</label>
+        <textarea class="pure-input" id="notes" placeholder="Add any additional notes..."></textarea>
+        <div class="center" style="margin-top: 18px;">
+          <button type="submit" class="pure-button pure-button-primary">Save Application</button>
         </div>
-        <div class="field mb-2">
-          <input class="input" type="text" id="location">
-          <label for="location">Location</label>
-        </div>
-        <div class="field mb-2">
-          <select class="input" id="jobType">
-            <option value="full-time">Full Time</option>
-            <option value="part-time">Part Time</option>
-            <option value="contract">Contract</option>
-            <option value="internship">Internship</option>
-          </select>
-          <label for="jobType">Job Type</label>
-        </div>
-        <div class="field mb-2">
-          <input class="input" type="text" id="salaryRange" placeholder="e.g., $80,000 - $100,000">
-          <label for="salaryRange">Salary Range</label>
-        </div>
-        <div class="field mb-2">
-          <select class="input" id="status">
-            <option value="saved">Saved</option>
-            <option value="applied">Applied</option>
-            <option value="interview">Interview</option>
-            <option value="offer">Offer</option>
-            <option value="rejected">Rejected</option>
-            <option value="accepted">Accepted</option>
-          </select>
-          <label for="status">Application Status</label>
-        </div>
-        <div class="field mb-2">
-          <textarea class="input" id="jobDescription"></textarea>
-          <label for="jobDescription">Job Description</label>
-        </div>
-        <div class="field mb-2">
-          <input class="input" type="url" id="jobUrl">
-          <label for="jobUrl">Job URL</label>
-        </div>
-        <div class="field mb-2">
-          <div class="chip-set" id="tagInput">
-            <input class="input" type="text" id="tagField" placeholder="Add tags...">
-          </div>
-          <label for="tagField">Tags</label>
-        </div>
-        <div class="field mb-2">
-          <textarea class="input" id="notes" placeholder="Add any additional notes..."></textarea>
-          <label for="notes">Notes</label>
-        </div>
-        <div class="mt-4 flex center">
-          <button type="submit" class="button bg-primary white">Save Application</button>
-        </div>
-        <div id="status" class="mt-3" style="display:none;"></div>
-        <div id="loadingSpinner" class="center mt-2" style="display:none;">
-          <progress class="circle"></progress>
+        <div id="status" class="center" style="display:none;"></div>
+        <div id="loadingSpinner" class="center" style="display:none; margin-top:10px;">
+          <progress></progress>
         </div>
       </form>
     </div>
@@ -334,13 +359,12 @@ function injectJobTrackerPanel() {
   document.body.appendChild(host);
 
   // All selectors and logic must use shadowRoot
-  const panel = shadow.querySelector('.jt-panel-bg');
   const closeBtn = shadow.getElementById('jt-close-btn');
   closeBtn.onclick = () => {
     host.remove();
   };
 
-  // Tag logic (BeerCSS chip-set)
+  // Tag logic (chip-set)
   const tagInput = shadow.getElementById('tagInput');
   const tagField = shadow.getElementById('tagField');
   const tags = new Set();
@@ -358,7 +382,7 @@ function injectJobTrackerPanel() {
       chip.className = 'chip';
       chip.innerHTML = `
         <span>${tag}</span>
-        <button type="button" class="transparent" aria-label="Remove tag">&times;</button>
+        <button type="button" aria-label="Remove tag">&times;</button>
       `;
       chip.querySelector('button').onclick = function() {
         chip.remove();
@@ -433,16 +457,16 @@ function injectJobTrackerPanel() {
 
   function showStatus(message, type) {
     status.textContent = message;
-    status.className = 'mt-3';
+    status.className = 'center';
     if (type === 'success') {
-      status.classList.add('green-text');
+      status.classList.add('status-success');
     } else if (type === 'error') {
-      status.classList.add('red-text');
+      status.classList.add('status-error');
     }
     status.style.display = 'block';
     setTimeout(() => {
       status.style.display = 'none';
-      status.classList.remove('green-text', 'red-text');
+      status.classList.remove('status-success', 'status-error');
     }, 4000);
   }
 }
