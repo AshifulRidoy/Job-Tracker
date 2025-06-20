@@ -30,15 +30,18 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "chrome-extension://iaipijeodpmliakdlfcajlndddedkfnf",  # Only your extension ID
+        "chrome-extension://iaipijeodpmliakdlfcajlndddedkfnf",
+        "https://www.linkedin.com",
+        "https://www.glassdoor.com",
+        "https://www.indeed.com",
+        "https://www.xing.com",
         "http://localhost:8000",
         "http://localhost:3000",
         os.getenv("FRONTEND_URL", "https://job-tracker-kh1h.onrender.com")
     ],
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"]
+    allow_headers=["*"]
 )
 
 # Templates
