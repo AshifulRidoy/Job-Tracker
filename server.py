@@ -47,22 +47,22 @@ templates = Jinja2Templates(directory="templates")
 
 # MongoDB configuration
 MONGO_URI = os.getenv("MONGO_URI")
-if not MONGO_URI:
-    raise ValueError("MONGO_URI environment variable is not set")
-
-client = MongoClient(MONGO_URI)
-db = client.job_tracker
-jobs_collection = db.jobs
-resumes_collection = db["resumes"]
-interviews_collection = db["interviews"]
-
-# Test MongoDB connection
-try:
-    client.admin.command('ping')
-    print("Successfully connected to MongoDB Atlas!")
-except Exception as e:
-    print(f"Error connecting to MongoDB: {e}")
-    raise
+if MONGO_URI:
+    client = MongoClient(MONGO_URI)
+    db = client.job_tracker
+    jobs_collection = db.jobs
+    resumes_collection = db["resumes"]
+    interviews_collection = db["interviews"]
+    # Test MongoDB connection
+    try:
+        client.admin.command('ping')
+        print("Successfully connected to MongoDB Atlas!")
+    except Exception as e:
+        print(f"Error connecting to MongoDB: {e}")
+        client = db = jobs_collection = resumes_collection = interviews_collection = None
+else:
+    print("Warning: MONGO_URI environment variable is not set. MongoDB features will be disabled.")
+    client = db = jobs_collection = resumes_collection = interviews_collection = None
 
 # OneDrive configuration
 ONEDRIVE_CLIENT_ID = os.getenv("ONEDRIVE_CLIENT_ID")
@@ -359,12 +359,16 @@ async def create_job(job_data: JobData):
 
 @app.get("/api/jobs")
 async def get_jobs(status: Optional[ApplicationStatus] = None):
+    if jobs_collection is None:
+        raise HTTPException(status_code=503, detail="MongoDB is not available.")
     query = {"status": status} if status else {}
     jobs = list(jobs_collection.find(query, {"_id": 0}))
     return jobs
 
 @app.put("/api/jobs/{job_id}")
 async def update_job(job_id: str, job_data: JobData):
+    if jobs_collection is None:
+        raise HTTPException(status_code=503, detail="MongoDB is not available.")
     try:
         job_data.updated_at = datetime.now()
         result = jobs_collection.update_one(
@@ -379,6 +383,8 @@ async def update_job(job_id: str, job_data: JobData):
 
 @app.post("/api/resumes")
 async def add_resume(resume_data: ResumeData):
+    if resumes_collection is None:
+        raise HTTPException(status_code=503, detail="MongoDB is not available.")
     try:
         result = resumes_collection.insert_one(resume_data.dict())
         return {
@@ -390,16 +396,22 @@ async def add_resume(resume_data: ResumeData):
 
 @app.get("/api/resumes/{company_name}")
 async def get_resumes(company_name: str):
+    if resumes_collection is None:
+        raise HTTPException(status_code=503, detail="MongoDB is not available.")
     resumes = list(resumes_collection.find({"company_name": company_name}, {"_id": 0}))
     return resumes
 
 @app.get("/api/resumes/all")
 async def get_all_resumes():
+    if resumes_collection is None:
+        raise HTTPException(status_code=503, detail="MongoDB is not available.")
     resumes = list(resumes_collection.find({}, {"_id": 0}))
     return resumes
 
 @app.post("/api/interviews")
 async def schedule_interview(interview_data: InterviewData):
+    if interviews_collection is None:
+        raise HTTPException(status_code=503, detail="MongoDB is not available.")
     try:
         result = interviews_collection.insert_one(interview_data.dict())
         return {
@@ -411,6 +423,8 @@ async def schedule_interview(interview_data: InterviewData):
 
 @app.get("/api/interviews")
 async def get_interviews(start_date: Optional[datetime] = None, end_date: Optional[datetime] = None):
+    if interviews_collection is None:
+        raise HTTPException(status_code=503, detail="MongoDB is not available.")
     query = {}
     if start_date and end_date:
         query["date"] = {"$gte": start_date, "$lte": end_date}
@@ -419,6 +433,8 @@ async def get_interviews(start_date: Optional[datetime] = None, end_date: Option
 
 @app.get("/api/analytics")
 async def get_analytics():
+    if jobs_collection is None or interviews_collection is None:
+        raise HTTPException(status_code=503, detail="MongoDB is not available.")
     try:
         # Get total applications
         total_applications = jobs_collection.count_documents({})
@@ -450,9 +466,8 @@ async def get_analytics():
         raise HTTPException(status_code=500, detail=str(e))
 
 def cleanup_old_entries(days_old: int = 30):
-    """
-    Remove job entries older than specified days from MongoDB
-    """
+    if jobs_collection is None:
+        raise HTTPException(status_code=503, detail="MongoDB is not available.")
     try:
         cutoff_date = datetime.now() - timedelta(days=days_old)
         result = jobs_collection.delete_many({
@@ -468,10 +483,8 @@ def cleanup_old_entries(days_old: int = 30):
 
 @app.delete("/api/cleanup")
 async def cleanup_jobs(days: int = 30):
-    """
-    Endpoint to clean up old job entries
-    Query parameter: days (default: 30) - entries older than this many days will be deleted
-    """
+    if jobs_collection is None:
+        raise HTTPException(status_code=503, detail="MongoDB is not available.")
     try:
         result = cleanup_old_entries(days)
         return result
@@ -520,6 +533,8 @@ async def shutdown_event():
 
 @app.get("/api/test-db")
 async def test_db():
+    if client is None or jobs_collection is None:
+        raise HTTPException(status_code=503, detail="MongoDB is not available.")
     try:
         # Test database connection
         client.admin.command('ping')
