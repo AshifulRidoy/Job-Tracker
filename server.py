@@ -30,11 +30,10 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "chrome-extension://iaipijeodpmliakdlfcajlndddedkfnf",  # Only your extension ID
         "http://localhost:8000",
         "http://localhost:3000",
-        "chrome-extension://*",  # Allow all Chrome extensions
-        "chrome-extension://iaipijeodpmliakdlfcajlndddedkfnf",  # Your specific extension ID
-        os.getenv("FRONTEND_URL", "https://job-tracker-kh1h.onrender.com")  # Your Render URL
+        os.getenv("FRONTEND_URL", "https://job-tracker-kh1h.onrender.com")
     ],
     allow_credentials=True,
     allow_methods=["*"],
